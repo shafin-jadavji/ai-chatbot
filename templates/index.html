@@ -4,34 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Chatbot</title>
+    <style>
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s linear infinite;
+            margin: auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
     <script>
         async function sendMessage() {
             let userMessage = document.getElementById("user-input").value;
             let chatBox = document.getElementById("chat-box");
+            let statusMessage = document.getElementById("status-message");
+
+            if (userMessage.trim() === "") return;
 
             // Add user message
-            chatBox.innerHTML += "<p><strong>You:</strong> " + userMessage + "</p>";
+            chatBox.innerHTML += `<p><strong>You:</strong> ${userMessage}</p>`;
+
+            // Show spinner
+            statusMessage.innerHTML = '<div class="spinner"></div>';
 
             // Send to Flask backend
-            let response = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: userMessage })
-            });
+            try {
+                let response = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: userMessage })
+                });
 
-            let data = await response.json();
-            
-            // Add bot reply
-            chatBox.innerHTML += "<p><strong>Bot:</strong> " + data.reply + "</p>";
+                let data = await response.json();
 
-            // Clear input field
-            document.getElementById("user-input").value = "";
+                // Add bot reply
+                chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.reply}</p>`;
+            } catch (error) {
+                chatBox.innerHTML += `<p style="color: red;"><strong>Error:</strong> Unable to get response from server.</p>`;
+            } finally {
+                // Clear input field and remove spinner
+                document.getElementById("user-input").value = "";
+                statusMessage.innerHTML = "";
+            }
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const input = document.getElementById("user-input");
+            input.addEventListener("keypress", function(event) {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+        });
     </script>
 </head>
 <body>
     <h1>AI Chatbot</h1>
     <div id="chat-box" style="border:1px solid #ccc; height: 300px; overflow-y: scroll; padding: 10px;"></div>
+    <div id="status-message" style="text-align: center; padding: 10px;"></div>
     <input type="text" id="user-input" placeholder="Type a message...">
     <button onclick="sendMessage()">Send</button>
 </body>
